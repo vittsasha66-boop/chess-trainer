@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Дебютник — тренажёр шахматных дебютов</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#eceff6;--panel:#fff;--ink:#141b2d;--mute:#5d6882;--line:#dce1ee;--acc:#3f4fd1;--accink:#fff;--l:#e4eaf6;--d:#6c88b6;--sel:#f4d56a;--hint:#f09a2a;--ok:#1f8a58;--bad:#c4412f}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d121d;--panel:#151c2b;--ink:#e8ecf7;--mute:#97a3bf;--line:#26304a;--acc:#7c8cff;--accink:#0d121d;--l:#c3cfe3;--d:#516a91;--sel:#c9a93a;--hint:#e8913a;--ok:#4fc58a;--bad:#ef7a68}}
+:root[data-theme="dark"]{--bg:#0d121d;--panel:#151c2b;--ink:#e8ecf7;--mute:#97a3bf;--line:#26304a;--acc:#7c8cff;--accink:#0d121d;--l:#c3cfe3;--d:#516a91;--sel:#c9a93a;--hint:#e8913a;--ok:#4fc58a;--bad:#ef7a68}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top>div{max-width:1040px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-weight:800;font-size:1.25rem;letter-spacing:-.02em}
+.tabs{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px}
+.tab{border:0;background:none;padding:7px 16px;border-radius:9px;font-weight:600;color:var(--mute)}
+.tab[aria-selected="true"]{background:var(--acc);color:var(--accink)}
+main{max-width:1040px;margin:0 auto;padding:20px 16px 40px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.grid.th{grid-template-columns:260px minmax(0,1fr)}
+@media (max-width:780px){.grid,.grid.th{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{font-size:1.05rem;margin:0 0 10px}
+.card h1{font-size:1.6rem;margin:0 0 4px;letter-spacing:-.02em}
+.mute{color:var(--mute)}
+.pick{display:block;width:100%;text-align:left;border:1px solid var(--line);background:none;border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.pick[aria-pressed="true"]{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.pick b{display:block}.pick small{color:var(--mute)}
+.moves{font-weight:700;font-size:1.1rem;margin:8px 0 12px}
+ul.ideas{margin:0;padding-left:20px}ul.ideas li{margin-bottom:6px}
+.video{aspect-ratio:16/9;width:100%;border-radius:10px;overflow:hidden;background:var(--bg);border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;color:var(--mute)}
+.video iframe{width:100%;height:100%;border:0}
+.row{display:flex;gap:8px;margin-top:10px}
+.row input{flex:1;min-width:0;font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.btn{border:1px solid var(--acc);background:var(--acc);color:var(--accink);border-radius:10px;padding:8px 14px;font-weight:600}
+.btn.alt{background:none;color:var(--ink);border-color:var(--line)}
+.btn:disabled{opacity:.45;cursor:default}
+.bw{container-type:inline-size;width:min(100%,560px)}
+.board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));width:100%;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.sq{position:relative;border:0;padding:0;min-width:0;min-height:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9.4cqw;line-height:1;font-family:'Segoe UI Symbol','Noto Sans Symbols 2',serif}
+.sq.l{background:var(--l)}.sq.d{background:var(--d)}.sq.sel{background:var(--sel)}
+.sq.hint{box-shadow:inset 0 0 0 4px var(--hint)}
+.sq.dot::after{content:"";position:absolute;width:24%;height:24%;border-radius:50%;background:rgba(15,20,35,.3)}
+.sq:focus-visible{outline:3px solid var(--acc);outline-offset:-3px}
+.w{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 0 1px #000}.b{color:#141a28}
+.sq.lto{background-image:linear-gradient(rgba(255,214,80,.62),rgba(255,214,80,.62))}
+.sq.lfr{background-image:linear-gradient(rgba(255,214,80,.28),rgba(255,214,80,.28))}
+.pc{display:flex;align-items:center;justify-content:center;width:100%;height:100%;pointer-events:none}
+.mv{position:relative;z-index:3;animation:slide .26s ease-out}
+@keyframes slide{from{transform:translate(calc(var(--dx)*100%),calc(var(--dy)*100%))}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.mv{animation:none}}
+.rk,.fl{position:absolute;font:700 10px 'Manrope',sans-serif;opacity:.7;color:#141b2d}
+.rk{left:3px;top:2px}.fl{right:3px;bottom:1px}
+.msg{min-height:3em;margin:0 0 10px;font-weight:500}.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.sw{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:0;padding:0;font-weight:600}
+.sw i{width:42px;height:24px;border-radius:12px;background:var(--line);position:relative;transition:background .15s}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw[aria-checked="true"] i{background:var(--acc)}.sw[aria-checked="true"] i::after{transform:translateX(18px)}
+select{width:100%;font:inherit;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.chips{display:flex;flex-direction:column;gap:6px;margin:10px 0 0}
+.chip{font-size:.9rem;padding:5px 10px;border-radius:8px;border:1px solid var(--line);color:var(--mute)}
+.chip.on{color:var(--ok);border-color:var(--ok)}
+.gh{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:6px;font-weight:600;text-align:left}
+.grp .chips{margin:6px 0 0 10px}
+.mini{font-size:.82rem;padding:5px 10px}
+.hist{color:var(--mute);font-size:.9rem;margin:10px 0 0;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+const { useState, useRef, useEffect } = React;
+const h = React.createElement;
+const clean = s => s.replace(/[+#]/g, '');
+const ls = { get(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }, set(k,v){ try{ localStorage.setItem(k,v) }catch(e){} } };
+const L = s => s.split(' ');
+
+/* Звуки синтезируются прямо в браузере (Web Audio), файлы не нужны */
+let AC = null;
+function beep(kind) {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    const t0 = AC.currentTime;
+    const tone = (type, f1, f2, dur, vol, delay) => {
+      const o = AC.createOscillator(), gn = AC.createGain(), t = t0 + (delay || 0);
+      o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(gn); gn.connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
+    };
+    if (kind === 'move') tone('triangle', 240, 110, 0.09, 0.35);
+    else if (kind === 'capture') { tone('triangle', 300, 70, 0.16, 0.5); tone('square', 120, 60, 0.08, 0.12); }
+    else if (kind === 'error') tone('sawtooth', 170, 120, 0.22, 0.14);
+    else if (kind === 'win') [523, 659, 784].forEach((f, i) => tone('sine', f, f, 0.22, 0.25, 0.12 + i * 0.11));
+  } catch (e) {}
+}
+
+/* ===== Репертуар: каждая линия — отдельная вариация; дерево строится из общих начал ===== */
+const OPS = [
+ { id:'italian', name:'Итальянская партия', side:'w', tag:'За белых', moves:'1.e4 e5 2.Nf3 Nc6 3.Bc4',
+   ideas:['Слон c4 целится в слабый пункт f7.','Спокойный план c3 + d3 (Джуоко Пьяно) или c3 + d4 для борьбы за центр.','Рокировка и быстрое развитие фигур — главное в начале партии.','Гамбит Эванса 4.b4: пешка в обмен на темп и сильный центр.'],
+   lines:[
+    {n:'Джуоко Пьяно, c3 и d3', m:'e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3 d6 O-O O-O'},
+    {n:'Атака Мёллера', m:'e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d4 exd4 cxd4 Bb4 Nc3 Nxe4 O-O Bxc3 d5 Bf6 Re1 Ne7 Rxe4 d6'},
+    {n:'Гамбит Эванса', m:'e4 e5 Nf3 Nc6 Bc4 Bc5 b4 Bxb4 c3 Ba5 d4 exd4 O-O d6 Qb3 Qd7'},
+    {n:'Джуоко Пианиссимо', m:'e4 e5 Nf3 Nc6 Bc4 Bc5 d3 Nf6 c3 a6 O-O d6 Bb3 Ba7'},
+    {n:'Атака Макса Ланге, 4.d4', m:'e4 e5 Nf3 Nc6 Bc4 Bc5 d4 exd4 O-O Nf6 e5 d5 exf6 dxc4 Re1 Be6'},
+    {n:'Центральный гамбит, 5.c3', m:'e4 e5 Nf3 Nc6 Bc4 Bc5 d4 exd4 c3 dxc3 Nxc3 d6 O-O Nf6'},
+    {n:'Быстрая рокировка, 4.O-O', m:'e4 e5 Nf3 Nc6 Bc4 Bc5 O-O Nf6 d3 d6 c3 O-O Re1 a6 Bb3 Ba7'}]},
+ { id:'ruy', name:'Испанская партия', side:'w', tag:'За белых', moves:'1.e4 e5 2.Nf3 Nc6 3.Bb5',
+   ideas:['Слон давит на коня c6, который защищает пешку e5: цель — ослабить центр чёрных.','Типичный план: рокировка, Re1, c3 и d4. Белые наращивают давление без спешки.','Морфи (3...a6) — главный ответ. Берлинская защита (3...Nf6) ведёт к раннему размену ферзей и надёжной игре за чёрных.','Шлиман (3...f5), Стейниц (3...d6) и 3...Bc5 — другие пути чёрных.'],
+   lines:[
+    {n:'Морфи, закрытый вариант', m:'e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O'},
+    {n:'Морфи, открытый вариант', m:'e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Nxe4 d4 b5 Bb3 d5 dxe5 Be6 c3 Be7 Nbd2 O-O'},
+    {n:'Берлинская защита', m:'e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5 Qxd8 Kxd8'},
+    {n:'Вариант обмена', m:'e4 e5 Nf3 Nc6 Bb5 a6 Bxc6 dxc6 O-O f6 d4 exd4 Nxd4 c5 Nb3 Qxd1 Rxd1'},
+    {n:'Защита Шлимана 3...f5', m:'e4 e5 Nf3 Nc6 Bb5 f5 Nc3 fxe4 Nxe4 d5 Nxe5 dxe4 Nxc6 Qg5 Qe2 Nf6'},
+    {n:'Защита Стейница 3...d6', m:'e4 e5 Nf3 Nc6 Bb5 d6 d4 Bd7 Nc3 Nf6 O-O Be7 Re1 exd4 Nxd4 O-O'},
+    {n:'Классическая защита 3...Bc5', m:'e4 e5 Nf3 Nc6 Bb5 Bc5 c3 Nf6 O-O O-O d4 Bb6'}]},
+ { id:'kg', name:'Королевский гамбит', side:'w', tag:'За белых', moves:'1.e4 e5 2.f4',
+   ideas:['Белые жертвуют пешку f4 ради быстрого развития и контроля над центром.','Принятый гамбит (2...exf4) — самая острая линия: атаки на короля и открытая линия «f».','Отказанный (2...Bc5) и контргамбит Фалькбера (2...d5) — главные способы чёрных не брать пешку.','Риск высок: после f4 ослабляется собственный король на диагонали e1–h4.'],
+   lines:[
+    {n:'Принятый, Кизерицкий', m:'e4 e5 f4 exf4 Nf3 g5 h4 g4 Ne5 Nf6 Bc4 d5 exd5 Bd6'},
+    {n:'Принятый, 3...d5', m:'e4 e5 f4 exf4 Nf3 d5 exd5 Nf6 Bb5 c6 dxc6 Nxc6 O-O Bd6'},
+    {n:'Слоновый гамбит 3.Bc4', m:'e4 e5 f4 exf4 Bc4 Qh4 Kf1 Bc5 Nf3 Qh5 d4 Bb6'},
+    {n:'Отказанный 2...Bc5', m:'e4 e5 f4 Bc5 Nf3 d6 c3 Nf6 d4 exd4 cxd4 Bb6'},
+    {n:'Контргамбит Фалькбера 2...d5', m:'e4 e5 f4 d5 exd5 e4 d3 Nf6 dxe4 Nxe4 Nf3 Bc5 Qe2 Bf5 Nc3 O-O'}]},
+ { id:'french', name:'Французская защита', side:'b', tag:'За чёрных', moves:'1.e4 e6 2.d4 d5',
+   ideas:['Чёрные строят прочную цепь e6–d5 и контратакуют центр ходом …c5.','Главная проблема — слон c8, закрытый пешкой e6; чёрные ищут ему активное место.','Основные пути белых: 3.Nc3 (Винавер, классика, Стейниц), 3.Nd2 (Тарраш), 3.e5 (выдвижение), 3.exd5 (обмен).','Типичный план чёрных: удар …c5 по пешке d4 и борьба за поле e4.'],
+   lines:[
+    {n:'Выдвижение 3.e5', m:'e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6 a3 c4 Nbd2 Na5'},
+    {n:'Тарраш 3.Nd2', m:'e4 e6 d4 d5 Nd2 Nf6 e5 Nfd7 Bd3 c5 c3 Nc6 Ne2 cxd4 cxd4 f6'},
+    {n:'Винавер 3...Bb4', m:'e4 e6 d4 d5 Nc3 Bb4 e5 c5 a3 Bxc3 bxc3 Ne7 Qg4 Qc7 Qxg7 Rg8 Qxh7 cxd4'},
+    {n:'Классическая 4.Bg5', m:'e4 e6 d4 d5 Nc3 Nf6 Bg5 Be7 e5 Nfd7 Bxe7 Qxe7 f4 O-O Nf3 c5'},
+    {n:'Система Стейница 4.e5', m:'e4 e6 d4 d5 Nc3 Nf6 e5 Nfd7 f4 c5 Nf3 Nc6 Be3 cxd4 Nxd4 Bc5'},
+    {n:'Вариант обмена', m:'e4 e6 d4 d5 exd5 exd5 Nf3 Nf6 Bd3 Bd6 O-O O-O Bg5 Bg4'},
+    {n:'Староиндийская атака', m:'e4 e6 d3 d5 Nd2 Nf6 g3 c5 Bg2 Nc6 Ngf3 Be7 O-O O-O'}]},
+ { id:'slav', name:'Славянская защита', side:'b', tag:'За чёрных', moves:'1.d4 d5 2.c4 c6',
+   ideas:['Пешка c6 защищает d5, а слон c8 остаётся вне пешечной цепи.','После …dxc4 чёрные выводят слона на f5 или g4 до хода …e6.','Полуславянская защита (…e6) — гибрид со Славянской и самая острая теория.','Надёжная система: даёт чёрным равную игру и понятные планы.'],
+   lines:[
+    {n:'Главная линия 4...dxc4', m:'d4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5 e3 e6 Bxc4 Bb4 O-O Nbd7'},
+    {n:'Полуславянская, меран', m:'d4 d5 c4 c6 Nf3 Nf6 Nc3 e6 e3 Nbd7 Bd3 dxc4 Bxc4 b5 Bd3 Bb7'},
+    {n:'4.e3 Bf5', m:'d4 d5 c4 c6 Nf3 Nf6 e3 Bf5 Nc3 e6 Nh4 Bg6 Be2 Nbd7'},
+    {n:'Вариант обмена 3.cxd5', m:'d4 d5 c4 c6 cxd5 cxd5 Nc3 Nf6 Bf4 Nc6 e3 a6 Qb3 Qd7'},
+    {n:'Система Чебаненко 4...a6', m:'d4 d5 c4 c6 Nf3 Nf6 Nc3 a6 e3 b5 c5 Bf5 Be2 e6 O-O Nbd7'},
+    {n:'3.Nc3, полуславянская 5.Nf3', m:'d4 d5 c4 c6 Nc3 Nf6 e3 e6 Nf3 Nbd7 Qc2 Bd6 Bd3 O-O'}]},
+ { id:'twoknights', name:'Защита двух коней', side:'b', tag:'За чёрных', moves:'1.e4 e5 2.Nf3 Nc6 3.Bc4 Nf6',
+   ideas:['Чёрные контратакуют пешку e4 вместо пассивной защиты.','После 4.Ng5 d5 5.exd5 лучший путь — Na5, а 5...Nxd5 допускает опасную «Жареную печень».','4...Bc5 (ловушка Тракслера) ведёт к острейшей игре.','Против 4.d4 чёрные отвечают exd4 и Nxe4 — ответный удар в центре.'],
+   lines:[
+    {n:'4.Ng5 d5 5.exd5 Na5', m:'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5 Bb5 c6 dxc6 bxc6 Be2 h6 Nf3 e4 Ne5 Bd6'},
+    {n:'«Жареная печень»', m:'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Nxd5 Nxf7 Kxf7 Qf3 Ke6 Nc3 Nb4 Qe4 c6'},
+    {n:'4.d4 exd4', m:'e4 e5 Nf3 Nc6 Bc4 Nf6 d4 exd4 O-O Nxe4 Re1 d5 Bxd5 Qxd5 Nc3 Qa5 Nxe4 Be6'},
+    {n:'Ловушка Тракслера', m:'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 Bc5 Nxf7 Bxf2 Kxf2 Nxe4 Ke3 Qh4'},
+    {n:'4.d3 Bc5', m:'e4 e5 Nf3 Nc6 Bc4 Nf6 d3 Bc5 c3 d6 b4 Bb6'},
+    {n:'5.exd5 Na5 6.d3', m:'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5 d3 h6 Nf3 e4 Qe2 Nxc4 dxc4 Bc5'},
+    {n:'5...Na5 6.Be2, ответ …Bd6', m:'e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5 Bb5 c6 dxc6 bxc6 Be2 h6 Nf3 e4 Ne5 Bd6 d4 exd3 Nxd3 Qc7'},
+    {n:'4.Nc3 Bc5', m:'e4 e5 Nf3 Nc6 Bc4 Nf6 Nc3 Bc5 O-O d6 d3 O-O'}]},
+ { id:'sicilian', name:'Сицилианская защита', side:'b', tag:'За чёрных', moves:'1.e4 c5',
+   ideas:['Асимметрия: чёрные борются за центр фланговой пешкой c5.','Обычно белые играют Nf3 и d4, а чёрные берут на d4 и получают открытую линию «c».','Три главных пути: Найдорф (…a6), Дракон (…g6), Тайманов (…e6 и …Nc6).','Алапин 2.c3 — белые уходят от глубокой теории.'],
+   lines:[
+    {n:'Найдорф, английская атака', m:'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6 f3 Be7 Qd2 O-O O-O-O Nbd7'},
+    {n:'Найдорф, 6.Bg5', m:'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Bg5 e6 f4 Be7 Qf3 Qc7 O-O-O Nbd7'},
+    {n:'Дракон, югославская атака', m:'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be3 Bg7 f3 O-O Qd2 Nc6 Bc4 Bd7 O-O-O Rc8'},
+    {n:'Тайманов', m:'e4 c5 Nf3 e6 d4 cxd4 Nxd4 Nc6 Nc3 Qc7 Be3 a6 Qd2 Nf6 O-O-O Bb4'},
+    {n:'Алапин 2.c3', m:'e4 c5 c3 Nf6 e5 Nd5 d4 cxd4 Nf3 Nc6 cxd4 d6 Bc4 Nb6 Bb3 dxe5 Nxe5 Nxe5 dxe5 Qxd1 Kxd1'},
+    {n:'Свешников', m:'e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 Nf6 Nc3 e5 Ndb5 d6 Bg5 a6 Na3 b5 Nd5 Be7'},
+    {n:'Закрытая Сицилианская', m:'e4 c5 Nc3 Nc6 g3 g6 Bg2 Bg7 d3 d6 Be3 e6 Qd2 Nge7'},
+    {n:'Схевенинген', m:'e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 e6 Be2 a6 O-O Be7 f4 O-O Be3 Nc6'},
+    {n:'Гамбит Морра', m:'e4 c5 d4 cxd4 c3 dxc3 Nxc3 Nc6 Nf3 d6 Bc4 e6 O-O Nf6'}]},
+ { id:'qg', name:'Ферзевый гамбит', side:'w', tag:'За белых', moves:'1.d4 d5 2.c4',
+   ideas:['Не настоящий гамбит: пешку c4 белые почти всегда возвращают.','Цель — разрушить центр чёрных и получить пространственное преимущество.','Отказанный (…e6) — прочная защита, принятый (…dxc4) — белые быстро забирают пешку слоном.','Славянская (…c6), Тарраш (…c5) и Альбин (…e5) — другие ответы чёрных.'],
+   lines:[
+    {n:'Отказанный, ортодоксальная защита', m:'d4 d5 c4 e6 Nc3 Nf6 Bg5 Be7 e3 O-O Nf3 Nbd7'},
+    {n:'Принятый гамбит', m:'d4 d5 c4 dxc4 e3 Nf6 Bxc4 e6 Nf3 c5 O-O a6'},
+    {n:'Славянская, меран', m:'d4 d5 c4 c6 Nf3 Nf6 Nc3 e6 e3 Nbd7 Bd3 dxc4 Bxc4 b5 Bd3 Bb7'},
+    {n:'Славянская, 4...dxc4', m:'d4 d5 c4 c6 Nf3 Nf6 Nc3 dxc4 a4 Bf5 e3 e6 Bxc4 Bb4 O-O Nbd7'},
+    {n:'Защита Тарраша', m:'d4 d5 c4 e6 Nc3 c5 cxd5 exd5 Nf3 Nc6 g3 Nf6 Bg2 Be7 O-O O-O'},
+    {n:'Контргамбит Альбина', m:'d4 d5 c4 e5 dxe5 d4 Nf3 Nc6 g3 Be6 Nbd2 Qd7'},
+    {n:'Кембридж-Спрингс', m:'d4 d5 c4 e6 Nc3 Nf6 Bg5 Nbd7 e3 c6 Nf3 Qa5 Nd2 Bb4 Qc2 O-O'},
+    {n:'Система обмена 4.cxd5', m:'d4 d5 c4 e6 Nc3 Nf6 cxd5 exd5 Bg5 Be7 e3 O-O Bd3 Nbd7 Nge2 Re8'},
+    {n:'Славянская, 4.e3 Bf5', m:'d4 d5 c4 c6 Nf3 Nf6 e3 Bf5 Nc3 e6 Nh4 Bg6 Be2 Nbd7'}]},
+ { id:'london', name:'Лондонская система', side:'w', tag:'За белых', moves:'1.d4 d5 2.Bf4',
+   ideas:['Слон выходит на f4 до e3 — иначе он закроется своими же пешками.','Универсальная схема: e3, c3, Nf3, Nbd2, Bd3 — годится почти против всего.','Чёрные часто бьют по b2 (…Qb6) или играют …c5.','Мало теории и понятные планы — система удобна для начинающих.'],
+   lines:[
+    {n:'Классическая схема против …e6', m:'d4 d5 Bf4 Nf6 e3 c5 c3 Nc6 Nd2 e6 Ngf3 Bd6 Bg3 O-O'},
+    {n:'Схема с Nf3 и Bd3', m:'d4 d5 Bf4 Nf6 e3 e6 Nf3 Bd6 Bg3 O-O Nbd2 c5 c3 Nc6 Bd3'},
+    {n:'Против …c5 и …Qb6', m:'d4 d5 Bf4 c5 e3 Nc6 c3 Qb6 Qb3 c4 Qxb6 axb6 Nd2 e6'},
+    {n:'Против …Bf5', m:'d4 d5 Bf4 Nf6 e3 Bf5 Nf3 e6 Nh4 Bg6 Nxg6 hxg6 Nd2 Bd6 Bg3 Bxg3 hxg3 Nbd7'},
+    {n:'Против староиндийской', m:'d4 Nf6 Bf4 g6 e3 Bg7 Nf3 O-O Be2 d6 h3'},
+    {n:'Против …Nc6 и …Bg4', m:'d4 d5 Bf4 Nc6 e3 Bg4 Nf3 e6 Be2 Bd6 Bg3 Nge7'},
+    {n:'Против …e6 и …Bd6', m:'d4 d5 Bf4 e6 e3 Bd6 Bg3 Nf6 Nf3 O-O Nbd2 c5 c3 Nc6 Bd3'},
+    {n:'Против …Ne4', m:'d4 d5 Bf4 Nf6 e3 Ne4 Nd2 Nxd2 Qxd2 e6 Nf3 Bd6 Bg3 O-O'}]},
+];
+
+function buildTree(op) {
+  const root = { c: {} }; let count = 0;
+  op.lines.forEach(ln => {
+    const g = new Chess(); let node = root, ok = true;
+    for (const san of L(ln.m)) {
+      const m = g.move(san);
+      if (!m) { console.warn('Недопустимый ход', op.id, ln.n, san); ok = false; break; }
+      const k = clean(m.san); node = node.c[k] || (node.c[k] = { c: {} });
+    }
+    if (ok) { node.name = ln.n; count++; }
+  });
+  return { root, count };
+}
+/* Общий тренажёр 1.e4 e5: линии из Итальянской и Двух коней + другие дебюты открытой игры */
+const OPEN_LINES0 = [
+  ...OPS.filter(o => o.id === 'italian' || o.id === 'ruy' || o.id === 'kg' || o.id === 'twoknights').flatMap(o => o.lines.filter(l => l.m.startsWith('e4 e5')).map(l => ({ ...l, g: o.name }))),
+  {n:'Испанская, Морфи 3...a6', m:'e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O'},
+  {n:'Испанская, Берлинская защита', m:'e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5 Qxd8 Kxd8'},
+  {n:'Испанская, вариант обмена', m:'e4 e5 Nf3 Nc6 Bb5 a6 Bxc6 dxc6 O-O f6 d4 exd4 Nxd4 c5 Nb3 Qxd1 Rxd1'},
+  {n:'Шотландская партия', m:'e4 e5 Nf3 Nc6 d4 exd4 Nxd4 Nf6 Nxc6 bxc6 e5 Qe7 Qe2 Nd5 c4 Ba6'},
+  {n:'Шотландский гамбит', m:'e4 e5 Nf3 Nc6 d4 exd4 Bc4 Nf6 e5 d5 Bb5 Ne4 Nxd4 Bd7'},
+  {n:'Русская партия (защита Петрова)', m:'e4 e5 Nf3 Nf6 Nxe5 d6 Nf3 Nxe4 d4 d5 Bd3 Nc6 O-O Be7 c4 Nb4'},
+  {n:'Защита Филидора', m:'e4 e5 Nf3 d6 d4 Nf6 Nc3 Nbd7 Bc4 Be7 O-O O-O'},
+  {n:'Партия четырёх коней', m:'e4 e5 Nf3 Nc6 Nc3 Nf6 Bb5 Bb4 O-O O-O d3 d6 Bg5 Bxc3 bxc3 Qe7'},
+  {n:'Венская партия', m:'e4 e5 Nc3 Nf6 f4 d5 fxe5 Nxe4 Nf3 Be7 d3 Nxc3 bxc3 O-O'},
+  {n:'Королевский гамбит принятый', m:'e4 e5 f4 exf4 Nf3 g5 h4 g4 Ne5 Nf6 Bc4 d5 exd5 Bd6'},
+  {n:'Королевский гамбит отказанный', m:'e4 e5 f4 Bc5 Nf3 d6 c3 Nf6 d4 exd4 cxd4 Bb6'},
+  {n:'Слоновая партия', m:'e4 e5 Bc4 Nf6 d3 c6 Nf3 d5 Bb3 Bd6 Nc3 O-O'},
+  {n:'Латышский гамбит', m:'e4 e5 Nf3 f5 Nxe5 Qf6 d4 d6 Nc4 fxe4 Nc3 Qg6 Ne3 Nf6'},
+  {n:'Центральная партия', m:'e4 e5 d4 exd4 Qxd4 Nc6 Qe3 Nf6 Nc3 Bb4 Bd2 O-O O-O-O Re8'},
+];
+const OPEN_LINES = OPEN_LINES0.filter((l, i, a) => a.findIndex(x => x.m === l.m) === i);
+const OPEN = [
+  { id:'open-w', name:'Открытая игра 1.e4 e5', side:'w', tag:'За белых', lines:OPEN_LINES },
+  { id:'open-b', name:'Открытая игра 1.e4 e5', side:'b', tag:'За чёрных', lines:OPEN_LINES },
+];
+const ALL = OPEN.concat(OPS);
+const TREES = {}; ALL.forEach(o => TREES[o.id] = buildTree(o));
+const GLYPH = { k:'♚', q:'♛', r:'♜', b:'♝', n:'♞', p:'♟' };
+
+function toEmbed(u) {
+  try {
+    const x = new URL(u.trim()), host = x.hostname.replace('www.', '');
+    if (host === 'youtu.be') return 'https://www.youtube.com/embed/' + x.pathname.slice(1);
+    if (host.endsWith('youtube.com')) return 'https://www.youtube.com/embed/' + (x.searchParams.get('v') || x.pathname.split('/').pop());
+    if (host === 'rutube.ru') return 'https://rutube.ru/play/embed/' + x.pathname.split('/').filter(Boolean)[1];
+  } catch (e) {}
+  return null;
+}
+
+function Theory() {
+  const [id, setId] = useState('italian');
+  const op = OPS.find(o => o.id === id);
+  const [url, setUrl] = useState(ls.get('vid:' + id) || '');
+  const [draft, setDraft] = useState('');
+  const [err, setErr] = useState('');
+  useEffect(() => { setUrl(ls.get('vid:' + id) || ''); setDraft(''); setErr(''); }, [id]);
+  const emb = url && toEmbed(url);
+  function save() {
+    if (!toEmbed(draft)) { setErr('Ссылка не распознана. Подойдут YouTube и RuTube.'); return; }
+    ls.set('vid:' + id, draft.trim()); setUrl(draft.trim()); setErr('');
+  }
+  return h('div', { className: 'grid th' },
+    h('div', null, h('div', { className: 'card' }, h('h2', null, 'Дебюты'),
+      OPS.map(o => h('button', { key: o.id, className: 'pick', 'aria-pressed': o.id === id, onClick: () => setId(o.id) },
+        h('b', null, o.name), h('small', null, o.tag + ', вариаций: ' + TREES[o.id].count))))),
+    h('div', null,
+      h('div', { className: 'card' }, h('h1', null, op.name), h('div', { className: 'mute' }, op.tag),
+        h('div', { className: 'moves' }, op.moves),
+        h('h2', null, 'Основные идеи'),
+        h('ul', { className: 'ideas' }, op.ideas.map((t, i) => h('li', { key: i }, t)))),
+      h('div', { className: 'card' }, h('h2', null, 'Видеоурок'),
+        h('div', { className: 'video' }, emb ? h('iframe', { src: emb, title: 'Видеоурок: ' + op.name, allowFullScreen: true, allow: 'fullscreen; encrypted-media; picture-in-picture' }) : 'Здесь будет видеоурок. Вставьте ссылку ниже.'),
+        h('div', { className: 'row' },
+          h('input', { value: draft, placeholder: 'Ссылка на YouTube или RuTube', 'aria-label': 'Ссылка на видео', onChange: e => setDraft(e.target.value) }),
+          h('button', { className: 'btn', onClick: save }, 'Вставить')),
+        err && h('p', { className: 'msg bad' }, err))));
+}
+
+function Trainer({ list, start }) {
+  const [oid, setOid] = useState(start);
+  const op = ALL.find(o => o.id === oid), T = TREES[oid];
+  const game = useRef(new Chess()), g = game.current;
+  const [node, setNode] = useState(T.root);
+  const [fen, setFen] = useState(g.fen());
+  const [sel, setSel] = useState(null);
+  const [lvl, setLvl] = useState(0);
+  const [hintsOn, setHintsOn] = useState(true);
+  const [found, setFound] = useState(() => { try { return JSON.parse(ls.get('found') || '{}'); } catch (e) { return {}; } });
+  useEffect(() => { ls.set('found', JSON.stringify(found)); }, [found]);
+  const [errors, setErrors] = useState(() => Number(ls.get('terr')) || 0);
+  const [openG, setOpenG] = useState({});
+  const [future, setFuture] = useState([]);
+  const [animOn, setAnimOn] = useState(false);
+  const [animTick, setAnimTick] = useState(0);
+  const [soundOn, setSoundOn] = useState(() => ls.get('sound') !== '0');
+  const soundRef = useRef(soundOn); soundRef.current = soundOn;
+  const play = k => { if (soundRef.current) beep(k); };
+  useEffect(() => { ls.set('terr', String(errors)); }, [errors]);
+  const [msg, setMsg] = useState({ t: '', k: '' });
+  const kids = Object.keys(node.c), over = kids.length === 0;
+  const startMsg = o => o.side === 'w' ? 'Ваш ход. Играйте за белых.' : 'Белые делают первый ход.';
+
+  useEffect(() => { setMsg({ t: startMsg(op), k: '' }); }, []);
+
+  function reset(id) {
+    const o = ALL.find(x => x.id === id);
+    g.reset(); setFuture([]); setAnimOn(false); setOid(id); setNode(TREES[id].root); setFen(g.fen()); setSel(null); setLvl(0); setMsg({ t: startMsg(o), k: '' });
+  }
+
+  useEffect(() => {
+    if (over || g.turn() === op.side) return;
+    const t = setTimeout(() => {
+      const k = kids[Math.floor(Math.random() * kids.length)];
+      const mv = g.move(k); play(mv && mv.captured ? 'capture' : 'move'); setNode(node.c[k]); setFen(g.fen()); setLvl(0); setAnimOn(true); setAnimTick(t => t + 1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [node, oid]);
+
+  useEffect(() => {
+    if (over && node.name) { play('win');
+      setFound(f => ({ ...f, [oid]: [...new Set([...(f[oid] || []), node.name])] }));
+      setMsg({ t: 'Вариация пройдена: ' + node.name + '. Нажмите «Новая попытка» — соперник может сыграть иначе.', k: 'ok' });
+    }
+  }, [node]);
+
+  function nodeAt(moves) { let nd = T.root; moves.forEach(s => { nd = nd.c[clean(s)]; }); return nd; }
+  function prevK(len) {
+    const minK = op.side === 'w' ? 0 : 1; let k = len - 1;
+    while (k >= minK && (k % 2 === 0) !== (op.side === 'w')) k--;
+    return k >= minK ? k : -1;
+  }
+  function back() {
+    const hist = g.history(), k = prevK(hist.length);
+    if (k < 0) return;
+    setFuture([...hist.slice(k), ...future]);
+    for (let i = hist.length; i > k; i--) g.undo();
+    play('move'); setNode(nodeAt(g.history())); setFen(g.fen()); setSel(null); setLvl(0); setAnimOn(false);
+    setMsg({ t: 'Шаг назад. Сыграйте другой ход или нажмите «Вперёд».', k: '' });
+  }
+  function forward() {
+    if (!future.length) return;
+    let i = 0, nd = node;
+    do { const m = g.move(future[i]); nd = nd.c[clean(m.san)]; i++; } while (i < future.length && g.turn() !== op.side);
+    play('move'); setFuture(future.slice(i)); setNode(nd); setFen(g.fen()); setSel(null); setLvl(0); setAnimOn(true); setAnimTick(t => t + 1);
+    setMsg({ t: 'Шаг вперёд.', k: '' });
+  }
+
+  function click(sq) {
+    if (over || g.turn() !== op.side) return;
+    const targets = sel ? g.moves({ square: sel, verbose: true }).map(m => m.to) : [];
+    if (sel && targets.includes(sq)) {
+      const m = g.move({ from: sel, to: sq, promotion: 'q' }), k = clean(m.san);
+      setSel(null);
+      if (node.c[k]) { play(m.captured ? 'capture' : 'move'); setFuture([]); setAnimOn(true); setAnimTick(t => t + 1); setNode(node.c[k]); setFen(g.fen()); setLvl(0); setMsg({ t: 'Верно: ' + m.san, k: 'ok' }); }
+      else {
+        g.undo(); play('error'); setFen(g.fen()); setErrors(e => e + 1);
+        setMsg({ t: m.san + ' — нет в репертуаре этой позиции. Попробуйте другой ход.', k: 'bad' });
+        setLvl(hintsOn ? 1 : 0);
+      }
+      return;
+    }
+    const p = g.get(sq); setSel(p && p.color === op.side ? sq : null);
+  }
+
+  const hm = hintsOn && lvl > 0 && !over && g.turn() === op.side ? kids.map(k => g.moves({ verbose: true }).find(x => clean(x.san) === k)).find(Boolean) : null;
+  const board = g.board(), targets = sel ? g.moves({ square: sel, verbose: true }).map(m => m.to) : [];
+  const flip = op.side === 'b', cells = [];
+  const hv = g.history({ verbose: true }), lm = hv.length ? hv[hv.length - 1] : null;
+  let dx = 0, dy = 0;
+  if (lm) {
+    const fx = 'abcdefgh'.indexOf(lm.from[0]), fy = +lm.from[1] - 1, tx = 'abcdefgh'.indexOf(lm.to[0]), ty = +lm.to[1] - 1;
+    dx = flip ? tx - fx : fx - tx; dy = flip ? fy - ty : ty - fy;
+  }
+  const spanProps = (name, p) => {
+    const mv = animOn && lm && lm.to === name, o = { className: 'pc ' + p.color + (mv ? ' mv' : '') };
+    if (mv) { o.key = 'a' + animTick; o.style = { '--dx': dx, '--dy': dy }; }
+    return o;
+  };
+  const canNav = g.turn() === op.side || over;
+  for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
+    const rr = flip ? 7 - r : r, ff = flip ? 7 - f : f, name = 'abcdefgh'[ff] + (8 - rr), p = board[rr][ff];
+    const cls = ['sq', (rr + ff) % 2 ? 'd' : 'l'];
+    if (sel === name) cls.push('sel');
+    if (hm && (hm.from === name || (lvl > 1 && hm.to === name))) cls.push('hint');
+    if (targets.includes(name)) cls.push('dot');
+    if (lm && lm.to === name) cls.push('lto'); else if (lm && lm.from === name) cls.push('lfr');
+    cells.push(h('button', { key: name, className: cls.join(' '), onClick: () => click(name), 'aria-label': name + (p ? ' ' + p.color + p.type : '') },
+      f === 0 && h('span', { className: 'rk' }, 8 - rr), r === 7 && h('span', { className: 'fl' }, 'abcdefgh'[ff]),
+      p && h('span', spanProps(name, p), GLYPH[p.type] + '\uFE0E')));
+  }
+  const names = found[oid] || [];
+  const groups = {};
+  op.lines.forEach(l => { const k = l.g || 'Другие дебюты'; (groups[k] = groups[k] || []).push(l); });
+  const chipEl = l => h('span', { key: l.n, className: 'chip' + (names.includes(l.n) ? ' on' : '') }, names.includes(l.n) ? '✓ ' + l.n : '• ???');
+  const grouped = op.id.indexOf('open') === 0;
+  const chipsView = h('div', null,
+    h('div', { className: 'btns' },
+      grouped && h('button', { className: 'btn alt mini', onClick: () => setOpenG(Object.fromEntries(Object.keys(groups).map(k => [k, true]))) }, 'Развернуть все'),
+      grouped && h('button', { className: 'btn alt mini', onClick: () => setOpenG({}) }, 'Свернуть все'),
+      h('button', { className: 'btn alt mini', onClick: () => { setFound({}); setErrors(0); } }, 'Сбросить прогресс')),
+    grouped ? Object.keys(groups).map(gn => {
+      const gl = groups[gn], n = gl.filter(l => names.includes(l.n)).length, isOpen = !!openG[gn];
+      return h('div', { key: gn, className: 'grp' },
+        h('button', { className: 'gh', 'aria-expanded': isOpen, onClick: () => setOpenG({ ...openG, [gn]: !isOpen }) },
+          h('span', null, (isOpen ? '▾ ' : '▸ ') + gn), h('b', null, n + '/' + gl.length)),
+        isOpen && h('div', { className: 'chips' }, gl.map(chipEl)));
+    }) : h('div', { className: 'chips' }, op.lines.map(chipEl)));
+  return h('div', { className: 'grid' },
+    h('div', { className: 'bw' }, h('div', { className: 'board' }, cells)),
+    h('div', null,
+      h('div', { className: 'card' },
+        h('select', { value: oid, 'aria-label': 'Дебют', onChange: e => reset(e.target.value) },
+          list.map(o => h('option', { key: o.id, value: o.id }, o.name + ' (' + o.tag.toLowerCase() + ')')))),
+      h('div', { className: 'card' },
+        h('p', { className: 'msg ' + msg.k, 'aria-live': 'polite' }, msg.t),
+        h('div', { className: 'btns' },
+          hintsOn && h('button', { className: 'btn', disabled: over || g.turn() !== op.side, onClick: () => setLvl(Math.min(2, lvl + 1)) }, lvl === 0 ? 'Подсказка' : 'Ещё подсказка'),
+          h('button', { className: 'btn alt', onClick: () => reset(oid) }, over ? 'Новая попытка' : 'Начать заново'),
+          h('button', { className: 'btn alt', onClick: back, disabled: !(canNav && prevK(hv.length) >= 0), 'aria-label': 'Ход назад' }, '◀ Назад'),
+          h('button', { className: 'btn alt', onClick: forward, disabled: !(canNav && future.length > 0), 'aria-label': 'Ход вперёд' }, 'Вперёд ▶')),
+        hintsOn && !over && g.turn() === op.side && h('p', { className: 'mute', style: { margin: '10px 0 0' } },
+          'Ходов в репертуаре: ' + kids.length + (lvl > 1 ? ' (' + kids.join(', ') + '); подсвечен основной' : '')),
+        h('p', { className: 'hist' }, g.history().join(' ') || 'Ходов пока нет')),
+      h('div', { className: 'card' },
+        h('button', { className: 'sw', role: 'switch', 'aria-checked': hintsOn, onClick: () => { setHintsOn(!hintsOn); setLvl(0); } },
+          'Подсказки', h('i')),
+        h('p', { className: 'mute', style: { margin: '8px 0 0', fontSize: '.9rem' } }, hintsOn ? 'Включены: кнопка, подсветка после ошибки, число ходов.' : 'Выключены: играйте по памяти.'),
+        h('button', { className: 'sw', role: 'switch', 'aria-checked': soundOn, style: { marginTop: 14 }, onClick: () => { const v = !soundOn; setSoundOn(v); ls.set('sound', v ? '1' : '0'); if (v) beep('move'); } }, 'Звуки', h('i'))),
+      h('div', { className: 'card' },
+        h('h2', null, 'Вариации: ' + names.length + ' из ' + T.count + ', ошибок: ' + errors),
+        chipsView)));
+}
+
+function App() {
+  const [tab, setTab] = useState('theory');
+  return h('div', null,
+    h('header', { className: 'top' }, h('div', null,
+      h('span', { className: 'brand' }, '♞ Дебютник'),
+      h('div', { className: 'tabs', role: 'tablist', style: { padding: 3, display: 'flex' } },
+        [['theory', 'Теория'], ['train', 'Тренажёр'], ['open', '1.e4 e5']].map(([k, t]) =>
+          h('button', { key: k, className: 'tab', role: 'tab', 'aria-selected': tab === k, onClick: () => setTab(k) }, t))))),
+    h('main', null, tab === 'theory' ? h(Theory) : tab === 'train' ? h(Trainer, { key: 't', list: OPS, start: 'italian' }) : h(Trainer, { key: 'o', list: OPEN, start: 'open-w' })));
+}
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>
