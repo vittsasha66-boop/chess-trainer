@@ -41,12 +41,18 @@ ul.ideas{margin:0;padding-left:20px}ul.ideas li{margin-bottom:6px}
 .btn:disabled{opacity:.45;cursor:default}
 .bw{container-type:inline-size;width:min(100%,560px)}
 .board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));width:100%;aspect-ratio:1;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
-.sq{position:relative;border:0;padding:0;min-width:0;min-height:0;width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:9.4cqw;line-height:1;font-family:'Segoe UI Symbol','Noto Sans Symbols 2',serif}
+.sq{position:relative;border:0;padding:0;min-width:0;min-height:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:9.4cqw;line-height:1;font-family:'Segoe UI Symbol','Noto Sans Symbols 2',serif}
 .sq.l{background:var(--l)}.sq.d{background:var(--d)}.sq.sel{background:var(--sel)}
 .sq.hint{box-shadow:inset 0 0 0 4px var(--hint)}
 .sq.dot::after{content:"";position:absolute;width:24%;height:24%;border-radius:50%;background:rgba(15,20,35,.3)}
 .sq:focus-visible{outline:3px solid var(--acc);outline-offset:-3px}
 .w{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 0 1px #000}.b{color:#141a28}
+.sq.lto{background-image:linear-gradient(rgba(255,214,80,.62),rgba(255,214,80,.62))}
+.sq.lfr{background-image:linear-gradient(rgba(255,214,80,.28),rgba(255,214,80,.28))}
+.pc{display:flex;align-items:center;justify-content:center;width:100%;height:100%;pointer-events:none}
+.mv{position:relative;z-index:3;animation:slide .26s ease-out}
+@keyframes slide{from{transform:translate(calc(var(--dx)*100%),calc(var(--dy)*100%))}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.mv{animation:none}}
 .rk,.fl{position:absolute;font:700 10px 'Manrope',sans-serif;opacity:.7;color:#141b2d}
 .rk{left:3px;top:2px}.fl{right:3px;bottom:1px}
 .msg{min-height:3em;margin:0 0 10px;font-weight:500}.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
@@ -76,6 +82,26 @@ const h = React.createElement;
 const clean = s => s.replace(/[+#]/g, '');
 const ls = { get(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }, set(k,v){ try{ localStorage.setItem(k,v) }catch(e){} } };
 const L = s => s.split(' ');
+
+/* Звуки синтезируются прямо в браузере (Web Audio), файлы не нужны */
+let AC = null;
+function beep(kind) {
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    const t0 = AC.currentTime;
+    const tone = (type, f1, f2, dur, vol, delay) => {
+      const o = AC.createOscillator(), gn = AC.createGain(), t = t0 + (delay || 0);
+      o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(gn); gn.connect(AC.destination); o.start(t); o.stop(t + dur + 0.02);
+    };
+    if (kind === 'move') tone('triangle', 240, 110, 0.09, 0.35);
+    else if (kind === 'capture') { tone('triangle', 300, 70, 0.16, 0.5); tone('square', 120, 60, 0.08, 0.12); }
+    else if (kind === 'error') tone('sawtooth', 170, 120, 0.22, 0.14);
+    else if (kind === 'win') [523, 659, 784].forEach((f, i) => tone('sine', f, f, 0.22, 0.25, 0.12 + i * 0.11));
+  } catch (e) {}
+}
 
 /* ===== Репертуар: каждая линия — отдельная вариация; дерево строится из общих начал ===== */
 const OPS = [
@@ -266,6 +292,12 @@ function Trainer({ list, start }) {
   useEffect(() => { ls.set('found', JSON.stringify(found)); }, [found]);
   const [errors, setErrors] = useState(() => Number(ls.get('terr')) || 0);
   const [openG, setOpenG] = useState({});
+  const [future, setFuture] = useState([]);
+  const [animOn, setAnimOn] = useState(false);
+  const [animTick, setAnimTick] = useState(0);
+  const [soundOn, setSoundOn] = useState(() => ls.get('sound') !== '0');
+  const soundRef = useRef(soundOn); soundRef.current = soundOn;
+  const play = k => { if (soundRef.current) beep(k); };
   useEffect(() => { ls.set('terr', String(errors)); }, [errors]);
   const [msg, setMsg] = useState({ t: '', k: '' });
   const kids = Object.keys(node.c), over = kids.length === 0;
@@ -275,24 +307,46 @@ function Trainer({ list, start }) {
 
   function reset(id) {
     const o = ALL.find(x => x.id === id);
-    g.reset(); setOid(id); setNode(TREES[id].root); setFen(g.fen()); setSel(null); setLvl(0); setMsg({ t: startMsg(o), k: '' });
+    g.reset(); setFuture([]); setAnimOn(false); setOid(id); setNode(TREES[id].root); setFen(g.fen()); setSel(null); setLvl(0); setMsg({ t: startMsg(o), k: '' });
   }
 
   useEffect(() => {
     if (over || g.turn() === op.side) return;
     const t = setTimeout(() => {
       const k = kids[Math.floor(Math.random() * kids.length)];
-      g.move(k); setNode(node.c[k]); setFen(g.fen()); setLvl(0);
+      const mv = g.move(k); play(mv && mv.captured ? 'capture' : 'move'); setNode(node.c[k]); setFen(g.fen()); setLvl(0); setAnimOn(true); setAnimTick(t => t + 1);
     }, 500);
     return () => clearTimeout(t);
   }, [node, oid]);
 
   useEffect(() => {
-    if (over && node.name) {
+    if (over && node.name) { play('win');
       setFound(f => ({ ...f, [oid]: [...new Set([...(f[oid] || []), node.name])] }));
       setMsg({ t: 'Вариация пройдена: ' + node.name + '. Нажмите «Новая попытка» — соперник может сыграть иначе.', k: 'ok' });
     }
   }, [node]);
+
+  function nodeAt(moves) { let nd = T.root; moves.forEach(s => { nd = nd.c[clean(s)]; }); return nd; }
+  function prevK(len) {
+    const minK = op.side === 'w' ? 0 : 1; let k = len - 1;
+    while (k >= minK && (k % 2 === 0) !== (op.side === 'w')) k--;
+    return k >= minK ? k : -1;
+  }
+  function back() {
+    const hist = g.history(), k = prevK(hist.length);
+    if (k < 0) return;
+    setFuture([...hist.slice(k), ...future]);
+    for (let i = hist.length; i > k; i--) g.undo();
+    play('move'); setNode(nodeAt(g.history())); setFen(g.fen()); setSel(null); setLvl(0); setAnimOn(false);
+    setMsg({ t: 'Шаг назад. Сыграйте другой ход или нажмите «Вперёд».', k: '' });
+  }
+  function forward() {
+    if (!future.length) return;
+    let i = 0, nd = node;
+    do { const m = g.move(future[i]); nd = nd.c[clean(m.san)]; i++; } while (i < future.length && g.turn() !== op.side);
+    play('move'); setFuture(future.slice(i)); setNode(nd); setFen(g.fen()); setSel(null); setLvl(0); setAnimOn(true); setAnimTick(t => t + 1);
+    setMsg({ t: 'Шаг вперёд.', k: '' });
+  }
 
   function click(sq) {
     if (over || g.turn() !== op.side) return;
@@ -300,9 +354,9 @@ function Trainer({ list, start }) {
     if (sel && targets.includes(sq)) {
       const m = g.move({ from: sel, to: sq, promotion: 'q' }), k = clean(m.san);
       setSel(null);
-      if (node.c[k]) { setNode(node.c[k]); setFen(g.fen()); setLvl(0); setMsg({ t: 'Верно: ' + m.san, k: 'ok' }); }
+      if (node.c[k]) { play(m.captured ? 'capture' : 'move'); setFuture([]); setAnimOn(true); setAnimTick(t => t + 1); setNode(node.c[k]); setFen(g.fen()); setLvl(0); setMsg({ t: 'Верно: ' + m.san, k: 'ok' }); }
       else {
-        g.undo(); setFen(g.fen()); setErrors(e => e + 1);
+        g.undo(); play('error'); setFen(g.fen()); setErrors(e => e + 1);
         setMsg({ t: m.san + ' — нет в репертуаре этой позиции. Попробуйте другой ход.', k: 'bad' });
         setLvl(hintsOn ? 1 : 0);
       }
@@ -314,15 +368,28 @@ function Trainer({ list, start }) {
   const hm = hintsOn && lvl > 0 && !over && g.turn() === op.side ? kids.map(k => g.moves({ verbose: true }).find(x => clean(x.san) === k)).find(Boolean) : null;
   const board = g.board(), targets = sel ? g.moves({ square: sel, verbose: true }).map(m => m.to) : [];
   const flip = op.side === 'b', cells = [];
+  const hv = g.history({ verbose: true }), lm = hv.length ? hv[hv.length - 1] : null;
+  let dx = 0, dy = 0;
+  if (lm) {
+    const fx = 'abcdefgh'.indexOf(lm.from[0]), fy = +lm.from[1] - 1, tx = 'abcdefgh'.indexOf(lm.to[0]), ty = +lm.to[1] - 1;
+    dx = flip ? tx - fx : fx - tx; dy = flip ? fy - ty : ty - fy;
+  }
+  const spanProps = (name, p) => {
+    const mv = animOn && lm && lm.to === name, o = { className: 'pc ' + p.color + (mv ? ' mv' : '') };
+    if (mv) { o.key = 'a' + animTick; o.style = { '--dx': dx, '--dy': dy }; }
+    return o;
+  };
+  const canNav = g.turn() === op.side || over;
   for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
     const rr = flip ? 7 - r : r, ff = flip ? 7 - f : f, name = 'abcdefgh'[ff] + (8 - rr), p = board[rr][ff];
     const cls = ['sq', (rr + ff) % 2 ? 'd' : 'l'];
     if (sel === name) cls.push('sel');
     if (hm && (hm.from === name || (lvl > 1 && hm.to === name))) cls.push('hint');
     if (targets.includes(name)) cls.push('dot');
+    if (lm && lm.to === name) cls.push('lto'); else if (lm && lm.from === name) cls.push('lfr');
     cells.push(h('button', { key: name, className: cls.join(' '), onClick: () => click(name), 'aria-label': name + (p ? ' ' + p.color + p.type : '') },
       f === 0 && h('span', { className: 'rk' }, 8 - rr), r === 7 && h('span', { className: 'fl' }, 'abcdefgh'[ff]),
-      p && h('span', { className: p.color }, GLYPH[p.type] + '\uFE0E')));
+      p && h('span', spanProps(name, p), GLYPH[p.type] + '\uFE0E')));
   }
   const names = found[oid] || [];
   const groups = {};
@@ -351,14 +418,17 @@ function Trainer({ list, start }) {
         h('p', { className: 'msg ' + msg.k, 'aria-live': 'polite' }, msg.t),
         h('div', { className: 'btns' },
           hintsOn && h('button', { className: 'btn', disabled: over || g.turn() !== op.side, onClick: () => setLvl(Math.min(2, lvl + 1)) }, lvl === 0 ? 'Подсказка' : 'Ещё подсказка'),
-          h('button', { className: 'btn alt', onClick: () => reset(oid) }, over ? 'Новая попытка' : 'Начать заново')),
+          h('button', { className: 'btn alt', onClick: () => reset(oid) }, over ? 'Новая попытка' : 'Начать заново'),
+          h('button', { className: 'btn alt', onClick: back, disabled: !(canNav && prevK(hv.length) >= 0), 'aria-label': 'Ход назад' }, '◀ Назад'),
+          h('button', { className: 'btn alt', onClick: forward, disabled: !(canNav && future.length > 0), 'aria-label': 'Ход вперёд' }, 'Вперёд ▶')),
         hintsOn && !over && g.turn() === op.side && h('p', { className: 'mute', style: { margin: '10px 0 0' } },
           'Ходов в репертуаре: ' + kids.length + (lvl > 1 ? ' (' + kids.join(', ') + '); подсвечен основной' : '')),
         h('p', { className: 'hist' }, g.history().join(' ') || 'Ходов пока нет')),
       h('div', { className: 'card' },
         h('button', { className: 'sw', role: 'switch', 'aria-checked': hintsOn, onClick: () => { setHintsOn(!hintsOn); setLvl(0); } },
           'Подсказки', h('i')),
-        h('p', { className: 'mute', style: { margin: '8px 0 0', fontSize: '.9rem' } }, hintsOn ? 'Включены: кнопка, подсветка после ошибки, число ходов.' : 'Выключены: играйте по памяти.')),
+        h('p', { className: 'mute', style: { margin: '8px 0 0', fontSize: '.9rem' } }, hintsOn ? 'Включены: кнопка, подсветка после ошибки, число ходов.' : 'Выключены: играйте по памяти.'),
+        h('button', { className: 'sw', role: 'switch', 'aria-checked': soundOn, style: { marginTop: 14 }, onClick: () => { const v = !soundOn; setSoundOn(v); ls.set('sound', v ? '1' : '0'); if (v) beep('move'); } }, 'Звуки', h('i'))),
       h('div', { className: 'card' },
         h('h2', null, 'Вариации: ' + names.length + ' из ' + T.count + ', ошибок: ' + errors),
         chipsView)));
